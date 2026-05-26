@@ -9,6 +9,7 @@ export function UserSync() {
 
   useEffect(() => {
     apiGet<{
+      user?: Parameters<typeof hydrateFromApi>[0]["user"];
       stats: Parameters<typeof hydrateFromApi>[0]["stats"];
       completedLessons: string[];
       examAttempts: Parameters<typeof hydrateFromApi>[0]["examAttempts"];

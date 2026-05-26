@@ -84,6 +84,7 @@ interface AppState {
   toggleDarkMode: () => void;
   
   // User Progression
+  user: { id: string; name: string | null; email: string | null; image: string | null } | null;
   stats: UserStats;
   addXp: (amount: number) => { leveledUp: boolean; xpGained: number };
   incrementStreak: () => void;
@@ -117,6 +118,7 @@ interface AppState {
   leaveVoiceRoom: (roomId: string) => void;
 
   hydrateFromApi: (data: {
+    user?: { id: string; name: string | null; email: string | null; image: string | null };
     stats: UserStats;
     completedLessons: string[];
     examAttempts: ExamAttempt[];
@@ -163,6 +165,7 @@ export const useAppStore = create<AppState>()(
       },
 
       // User Progression
+      user: null,
       stats: initialStats,
       addXp: (amount) => {
         const stats = get().stats;
@@ -275,6 +278,7 @@ export const useAppStore = create<AppState>()(
 
       hydrateFromApi: (data) => {
         set({
+          user: data.user || get().user,
           stats: data.stats,
           completedLessons: data.completedLessons,
           examAttempts: data.examAttempts,

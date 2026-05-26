@@ -19,7 +19,7 @@ interface LeaderboardUser {
 }
 
 export default function Leaderboard() {
-  const { stats } = useAppStore();
+  const { stats, user } = useAppStore();
   const [activeLeague, setActiveLeague] = useState<"Gold" | "Diamond" | "Bronze">("Gold");
   const [dbUsers, setDbUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -65,7 +65,7 @@ export default function Leaderboard() {
 
     // Map db users
     const mappedDb = filtered.map((u) => {
-      const isSelf = u.id === stats.id || u.name?.includes("You") || u.name?.includes("Cadet");
+      const isSelf = u.id === user?.id || u.name?.includes("You") || u.name?.includes("Cadet");
       return {
         rank: 0,
         name: isSelf ? "You (Fox Cadet)" : u.name || "Anonymous User",

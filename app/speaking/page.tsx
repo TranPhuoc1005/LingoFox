@@ -266,12 +266,12 @@ export default function AISpeaking() {
                       </div>
 
                       {/* Grammar corrections display */}
-                      {!isAssistant && grammarFeedback && (
+                      {isAssistant && grammarFeedback && (
                         <div className="p-3 bg-rose-500/10 border border-rose-500/20 text-danger rounded-2xl text-xs font-bold leading-relaxed space-y-1 animate-wiggle">
                           <p className="flex items-center gap-1">
                             <CornerDownRight className="w-3.5 h-3.5" /> Correction: "{grammarFeedback.corrected}"
                           </p>
-                          <p className="text-[10px] text-zinc-400 font-semibold pl-4">
+                          <p className="text-[10px] text-zinc-400 dark:text-zinc-500 font-semibold pl-4">
                             Tip: {grammarFeedback.tip}
                           </p>
                         </div>

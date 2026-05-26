@@ -1,0 +1,448 @@
+// LingoFox — Full database schema for English learning platform
+// Run: npx prisma migrate dev --name init
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL") // Supabase: direct connection for migrations
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ─── Auth (NextAuth) ───────────────────────────────────────────────
+
+model Account {
+  id                String  @id @default(uuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(uuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ─── User & Progress ─────────────────────────────────────────────────
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  name          String?
+  passwordHash  String?
+  emailVerified DateTime?
+  image         String?
+  role          String    @default("student") // student | admin | moderator
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  xp            Int       @default(0)
+  level         Int       @default(1)
+  streak        Int       @default(0)
+  dailyGoal     Int       @default(50)
+  lastStudyDate DateTime?
+  avatarConfig  String    @default("{}")
+  bio           String?
+  focusMode     Boolean   @default(false)
+
+  accounts      Account[]
+  sessions      Session[]
+  notes         Note[]
+  submissions   ExamSubmission[]
+  posts         Post[]
+  comments      Comment[]
+  progress      UserProgress[]
+  achievements  UserAchievement[]
+  aiConversations AIConversation[]
+  reactions     PostReaction[]
+  voices        VoiceSessionParticipant[]
+  friendshipsSent     Friendship[] @relation("FriendshipSender")
+  friendshipsReceived Friendship[] @relation("FriendshipReceiver")
+  challengeEntries    ChallengeEntry[]
+  studyPlans          StudyPlan[]
+  communicationSessions CommunicationSession[]
+}
+
+model Friendship {
+  id         String   @id @default(uuid())
+  senderId   String
+  receiverId String
+  status     String   @default("pending") // pending | accepted | blocked
+  createdAt  DateTime @default(now())
+
+  sender   User @relation("FriendshipSender", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver User @relation("FriendshipReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  @@unique([senderId, receiverId])
+}
+
+// ─── Learning System ─────────────────────────────────────────────────
+
+model Lesson {
+  id          String   @id @default(uuid())
+  slug        String   @unique
+  title       String
+  description String?
+  category    String   // Vocabulary, Grammar, Listening, Speaking, Writing, Reading, Communication, Business, Pronunciation
+  difficulty  String   // Beginner, Elementary, Intermediate, Advanced, TOEIC, IELTS
+  xpReward    Int      @default(10)
+  order       Int      @default(0)
+  isLocked    Boolean  @default(false)
+  prerequisiteId String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  steps       LessonStep[]
+  notes       Note[]
+  progress    UserProgress[]
+}
+
+model LessonStep {
+  id            String  @id @default(uuid())
+  lessonId      String
+  title         String
+  content       String  @db.Text
+  type          String  // text, quiz, listening, speaking, dialogue
+  order         Int     @default(0)
+  question      String?
+  options       String? // JSON array
+  correctAnswer String?
+  audioUrl      String?
+  imageUrl      String?
+  accent        String? // US, UK, AU, IN
+
+  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+}
+
+model UserProgress {
+  id          String    @id @default(uuid())
+  userId      String
+  lessonId    String
+  completed   Boolean   @default(false)
+  score       Int       @default(0)
+  timeSpent   Int       @default(0) // seconds
+  completedAt DateTime?
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, lessonId])
+}
+
+// ─── Listening Exercises ─────────────────────────────────────────────
+
+model ListeningExercise {
+  id            String   @id @default(uuid())
+  title         String
+  type          String   // dictation, multiple_choice, image_match, shadowing
+  difficulty    String
+  audioUrl      String?
+  imageUrl      String?
+  transcript    String?
+  question      String?
+  options       String?  // JSON
+  correctAnswer String?
+  accent        String   @default("US")
+  xpReward      Int      @default(15)
+  createdAt     DateTime @default(now())
+}
+
+// ─── Communication English ───────────────────────────────────────────
+
+model CommunicationScenario {
+  id          String   @id @default(uuid())
+  slug        String   @unique
+  title       String
+  category    String   // cafe, airport, interview, school, dating, business, travel, daily
+  description String?
+  difficulty  String   @default("Beginner")
+  icon        String   @default("💬")
+  gradient    String   @default("from-primary to-secondary")
+  startNodeId String   @default("start")
+  imageUrl    String?
+  xpReward    Int      @default(25)
+  createdAt   DateTime @default(now())
+
+  dialogues CommunicationDialogue[]
+  sessions  CommunicationSession[]
+}
+
+model CommunicationDialogue {
+  id          String  @id @default(uuid())
+  scenarioId  String
+  nodeId      String  // start, polite, end_good, ...
+  order       Int     @default(0)
+  speaker     String  // character name
+  speakerRole String? // barista, interviewer, etc.
+  text        String
+  translation String?
+  audioUrl    String?
+  isEnd       Boolean @default(false)
+  choices     String? // JSON: [{ text, nextId, score, feedback? }]
+
+  scenario CommunicationScenario @relation(fields: [scenarioId], references: [id], onDelete: Cascade)
+
+  @@unique([scenarioId, nodeId])
+}
+
+model CommunicationSession {
+  id         String   @id @default(uuid())
+  userId     String
+  scenarioId String
+  score      Int      @default(0)
+  completed  Boolean  @default(false)
+  pathTaken  String?  // JSON of choice IDs
+  createdAt  DateTime @default(now())
+
+  user     User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  scenario CommunicationScenario @relation(fields: [scenarioId], references: [id], onDelete: Cascade)
+}
+
+// ─── Exams ───────────────────────────────────────────────────────────
+
+model Exam {
+  id          String   @id @default(uuid())
+  slug        String   @unique
+  title       String
+  type        String   // TOEIC, IELTS
+  duration    Int
+  totalXp     Int      @default(100)
+  isMonthly   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  questions   ExamQuestion[]
+  submissions ExamSubmission[]
+}
+
+model ExamQuestion {
+  id             String  @id @default(uuid())
+  examId         String
+  section        String
+  questionNumber Int
+  passage        String? @db.Text
+  questionText   String
+  options        String
+  correctAnswer  String
+  explanation    String? @db.Text
+  audioUrl       String?
+  imageUrl       String?
+
+  exam Exam @relation(fields: [examId], references: [id], onDelete: Cascade)
+}
+
+model ExamSubmission {
+  id          String   @id @default(uuid())
+  userId      String
+  examId      String
+  score       Int
+  answers     String   @db.Text
+  analytics   String?  @db.Text
+  timeSpent   Int      @default(0)
+  submittedAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  exam Exam @relation(fields: [examId], references: [id], onDelete: Cascade)
+}
+
+// ─── Notes ───────────────────────────────────────────────────────────
+
+model Note {
+  id         String   @id @default(uuid())
+  userId     String
+  lessonId   String?
+  examId     String?
+  content    String   @db.Text
+  bookmarks  String?
+  highlights String?
+  stickyNotes String?
+  updatedAt  DateTime @updatedAt
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson Lesson? @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, lessonId])
+}
+
+// ─── Community ───────────────────────────────────────────────────────
+
+model Post {
+  id        String   @id @default(uuid())
+  userId    String
+  title     String
+  content   String   @db.Text
+  category  String   @default("general")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comments  Comment[]
+  reactions PostReaction[]
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  postId    String
+  userId    String
+  content   String
+  createdAt DateTime @default(now())
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model PostReaction {
+  id     String @id @default(uuid())
+  postId String
+  userId String
+  type   String
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId, type])
+}
+
+model ChatRoom {
+  id        String   @id @default(uuid())
+  name      String
+  slug      String   @unique
+  isPublic  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  messages ChatMessage[]
+}
+
+model ChatMessage {
+  id        String   @id @default(uuid())
+  roomId    String
+  userId    String?
+  authorName String
+  content   String
+  createdAt DateTime @default(now())
+
+  room ChatRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+}
+
+// ─── Gamification ────────────────────────────────────────────────────
+
+model Achievement {
+  id          String  @id @default(uuid())
+  slug        String  @unique
+  title       String
+  description String
+  badgeImage  String
+  xpThreshold Int     @default(0)
+
+  users UserAchievement[]
+}
+
+model UserAchievement {
+  id            String   @id @default(uuid())
+  userId        String
+  achievementId String
+  unlockedAt    DateTime @default(now())
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievement Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, achievementId])
+}
+
+model WeeklyChallenge {
+  id          String   @id @default(uuid())
+  title       String
+  description String
+  xpReward    Int      @default(100)
+  targetXp    Int      @default(500)
+  startsAt    DateTime
+  endsAt      DateTime
+
+  entries ChallengeEntry[]
+}
+
+model ChallengeEntry {
+  id          String @id @default(uuid())
+  challengeId String
+  userId      String
+  xpEarned    Int    @default(0)
+
+  challenge WeeklyChallenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([challengeId, userId])
+}
+
+// ─── AI ──────────────────────────────────────────────────────────────
+
+model AIConversation {
+  id              String   @id @default(uuid())
+  userId          String
+  role            String
+  message         String   @db.Text
+  topic           String?
+  grammarFeedback String?
+  createdAt       DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model StudyPlan {
+  id        String   @id @default(uuid())
+  userId    String
+  plan      String   @db.Text // JSON: daily tasks generated by AI
+  goal      String   // TOEIC, IELTS, General
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ─── Voice Rooms ─────────────────────────────────────────────────────
+
+model VoiceStudyRoom {
+  id           String                    @id @default(uuid())
+  name         String
+  isActive     Boolean                   @default(true)
+  maxParticipants Int                  @default(10)
+  createdAt    DateTime                  @default(now())
+  participants VoiceSessionParticipant[]
+}
+
+model VoiceSessionParticipant {
+  id       String         @id @default(uuid())
+  roomId   String
+  userId   String
+  isMuted  Boolean        @default(false)
+  joinedAt DateTime       @default(now())
+
+  room VoiceStudyRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([roomId, userId])
+}

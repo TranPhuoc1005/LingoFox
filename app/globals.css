@@ -1,0 +1,223 @@
+@import "tailwindcss";
+
+/* ─── Semantic tokens (light / dark via .dark on <html>) ─── */
+:root {
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  --border: #e2e8f0;
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --input: #ffffff;
+  --input-foreground: #0f172a;
+  --primary-light: #fff3eb;
+  --ring: #ff8f3d;
+}
+
+.dark {
+  --background: #0f172a;
+  --foreground: #f1f5f9;
+  --border: #334155;
+  --muted: #172033;
+  --muted-foreground: #94a3b8;
+  --card: #1e293b;
+  --card-foreground: #f1f5f9;
+  --input: #273548;
+  --input-foreground: #f1f5f9;
+  --primary-light: #3d2a1f;
+  --ring: #ff8f3d;
+}
+
+@theme {
+  --color-primary: #ff8f3d;
+  --color-primary-hover: #e07424;
+  --color-primary-light: var(--primary-light);
+
+  --color-secondary: #8b5cf6;
+  --color-secondary-hover: #7c3aed;
+
+  --color-accent: #ffc83b;
+  --color-success: #10b981;
+  --color-danger: #f43f5e;
+  --color-info: #0ea5e9;
+  --color-discord: #5865f2;
+
+  --color-dark-bg: #0f172a;
+  --color-dark-card: #1e293b;
+  --color-dark-border: #334155;
+
+  /* Map CSS variables → Tailwind utilities (bg-background, text-foreground, …) */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-border: var(--border);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-input: var(--input);
+  --color-input-foreground: var(--input-foreground);
+
+  --animate-float: float 4s ease-in-out infinite;
+  --animate-bounce-subtle: bounce-subtle 2s ease-in-out infinite;
+  --animate-pulse-glow: pulse-glow 2.5s ease-in-out infinite;
+  --animate-wiggle: wiggle 0.5s ease-in-out;
+  --animate-spin-slow: spin 12s linear infinite;
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0px) rotate(0deg); }
+    50% { transform: translateY(-10px) rotate(1deg); }
+  }
+  @keyframes bounce-subtle {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+  }
+  @keyframes pulse-glow {
+    0%, 100% { filter: drop-shadow(0 0 8px rgba(255, 143, 61, 0.4)); }
+    50% { filter: drop-shadow(0 0 16px rgba(255, 143, 61, 0.8)); }
+  }
+  @keyframes wiggle {
+    0%, 100% { transform: rotate(0deg); }
+    25% { transform: rotate(-3deg); }
+    75% { transform: rotate(3deg); }
+  }
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  transition: background-color 0.3s ease, color 0.3s ease;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+}
+
+/* ─── Form controls: always readable text & placeholders ─── */
+@layer base {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  textarea,
+  select {
+    color: var(--input-foreground);
+    background-color: var(--input);
+  }
+
+  select option {
+    background-color: var(--card);
+    color: var(--card-foreground);
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--muted-foreground);
+    opacity: 1;
+  }
+
+  input:disabled,
+  textarea:disabled,
+  select:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+/* ─── Shared UI utilities ─── */
+@layer components {
+  .lf-input {
+    @apply w-full rounded-xl border-2 border-border bg-input text-input-foreground font-semibold text-sm
+      placeholder:text-muted-foreground
+      focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20
+      disabled:opacity-60 disabled:cursor-not-allowed;
+  }
+
+  .lf-textarea {
+    @apply w-full rounded-2xl border-2 border-border bg-input text-input-foreground font-mono text-sm leading-relaxed
+      placeholder:text-muted-foreground resize-none
+      focus:outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/20
+      disabled:opacity-60;
+  }
+
+  .lf-surface {
+    @apply bg-muted border border-border rounded-2xl;
+  }
+
+  .lf-nav-link {
+    @apply flex items-center gap-3 px-4 py-3 rounded-2xl font-black transition-all
+      text-muted-foreground hover:text-foreground hover:bg-muted;
+  }
+
+  .lf-nav-link-active {
+    @apply bg-primary-light text-primary border border-primary/25
+      dark:bg-primary/15 dark:text-primary dark:border-primary/30;
+  }
+
+  .lf-choice {
+    @apply w-full text-left p-4 rounded-2xl border-2 border-border font-bold transition-all cursor-pointer
+      bg-card text-card-foreground
+      hover:border-primary/50 hover:bg-muted
+      disabled:opacity-60 disabled:cursor-not-allowed;
+  }
+
+  .lf-choice-selected {
+    @apply border-primary bg-primary-light/60 text-primary
+      dark:bg-primary/15 dark:text-primary;
+  }
+
+  .lf-tab {
+    @apply px-4 py-2 font-black text-sm rounded-xl cursor-pointer transition-colors
+      text-muted-foreground hover:text-foreground hover:bg-muted;
+  }
+
+  .lf-tab-active {
+    @apply bg-secondary text-white hover:text-white hover:bg-secondary;
+  }
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: #475569;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.floating-particle {
+  pointer-events: none;
+  position: absolute;
+  background: radial-gradient(circle, rgba(255, 143, 61, 0.2) 0%, rgba(255, 143, 61, 0) 70%);
+  border-radius: 50%;
+  animation: float-particle 15s infinite linear;
+}
+
+@keyframes float-particle {
+  0% { transform: translateY(0) translateX(0) scale(1); opacity: 0; }
+  10% { opacity: 0.6; }
+  90% { opacity: 0.6; }
+  100% { transform: translateY(-100vh) translateX(50px) scale(0.5); opacity: 0; }
+}
+
+.wave-bar {
+  display: inline-block;
+  width: 4px;
+  height: 15px;
+  background-color: #ff8f3d;
+  margin: 0 2px;
+  border-radius: 2px;
+  animation: wave 1.2s ease-in-out infinite;
+}
+.wave-bar:nth-child(2) { animation-delay: 0.15s; }
+.wave-bar:nth-child(3) { animation-delay: 0.3s; }
+.wave-bar:nth-child(4) { animation-delay: 0.45s; }
+.wave-bar:nth-child(5) { animation-delay: 0.6s; }
+
+@keyframes wave {
+  0%, 100% { transform: scaleY(1); }
+  50% { transform: scaleY(2.5); }
+}
